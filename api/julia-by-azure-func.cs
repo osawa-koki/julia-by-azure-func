@@ -38,7 +38,7 @@ namespace julia
       // パラメータを取得する。
       if (int.TryParse(req.Query["width"], out width) == false) width = 500;
       if (int.TryParse(req.Query["height"], out height) == false) height = 500;
-      if (int.TryParse(req.Query["maxIter"], out maxIter) == false) maxIter = 100;
+      if (int.TryParse(req.Query["maxIter"], out maxIter) == false) maxIter = 30;
       if (int.TryParse(req.Query["hue"], out hue) == false) hue = 260;
       if (double.TryParse(req.Query["x0"], out x0) == false) x0 = -2.0;
       if (double.TryParse(req.Query["y0"], out y0) == false) y0 = -2.0;
@@ -68,11 +68,58 @@ namespace julia
 
           if (iter < maxIter)
           {
-            double t = (double)iter / maxIter;
-            double r = Math.Sin(0.5 * Math.PI * t + 0.0 * Math.PI) * 255;
-            double g = Math.Sin(0.5 * Math.PI * t + 1.0 * Math.PI) * 255;
-            double b = Math.Sin(0.5 * Math.PI * t + 2.0 * Math.PI) * 255;
-            image[x, y] = new Rgba32((byte)r, (byte)g, (byte)b);
+            // HSVからRGBへの変換
+            double h = iter / (double)maxIter * 360 + hue;
+            double s = 1.0;
+            double v = 1.0;
+            double _r, _g, _b;
+            if (s == 0)
+            {
+              _r = _g = _b = v;
+            }
+            else
+            {
+              h /= 60;
+              int i1 = (int)Math.Floor(h);
+              double f = h - i1;
+              double p = v * (1 - s);
+              double q = v * (1 - s * f);
+              double t = v * (1 - s * (1 - f));
+              switch (i1)
+              {
+                case 0:
+                  _r = v;
+                  _g = t;
+                  _b = p;
+                  break;
+                case 1:
+                  _r = q;
+                  _g = v;
+                  _b = p;
+                  break;
+                case 2:
+                  _r = p;
+                  _g = v;
+                  _b = t;
+                  break;
+                case 3:
+                  _r = p;
+                  _g = q;
+                  _b = v;
+                  break;
+                case 4:
+                  _r = t;
+                  _g = p;
+                  _b = v;
+                  break;
+                default:
+                  _r = v;
+                  _g = p;
+                  _b = q;
+                  break;
+              }
+            }
+            image[x, y] = new Rgba32((byte)(_r * 255), (byte)(_g * 255), (byte)(_b * 255));
           }
           else
           {
