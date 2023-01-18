@@ -10,9 +10,9 @@ using Newtonsoft.Json;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace mandelbrot
+namespace julia
 {
-  public static class mandelbrot_by_azure_func
+  public static class julia_by_azure_func
   {
     [FunctionName("julia_by_azure_func")]
     public static async Task<IActionResult> Run(
@@ -32,46 +32,44 @@ namespace mandelbrot
       double y0;
       double x1;
       double y1;
+      double cx;
+      double cy;
 
       // パラメータを取得する。
       if (int.TryParse(req.Query["width"], out width) == false) width = 500;
       if (int.TryParse(req.Query["height"], out height) == false) height = 500;
-      if (int.TryParse(req.Query["maxIter"], out maxIter) == false) maxIter = 1000;
+      if (int.TryParse(req.Query["maxIter"], out maxIter) == false) maxIter = 30;
       if (int.TryParse(req.Query["hue"], out hue) == false) hue = 260;
-      if (double.TryParse(req.Query["x0"], out x0) == false) x0 = -2.5;
+      if (double.TryParse(req.Query["x0"], out x0) == false) x0 = -2.0;
       if (double.TryParse(req.Query["y0"], out y0) == false) y0 = -2.0;
-      if (double.TryParse(req.Query["x1"], out x1) == false) x1 = 1.5;
+      if (double.TryParse(req.Query["x1"], out x1) == false) x1 = 2.0;
       if (double.TryParse(req.Query["y1"], out y1) == false) y1 = 2.0;
+      if (double.TryParse(req.Query["cx"], out cx) == false) cx = -0.8;
+      if (double.TryParse(req.Query["cy"], out cy) == false) cy = 0.156;
 
-      // マンデルブロ集合を描画する。
+      // ジュリア集合を計算する。
       var image = new Image<Rgba32>(width, height);
 
       for (int y = 0; y < height; y++)
       {
         for (int x = 0; x < width; x++)
         {
-          double a = x0 + (x1 - x0) * x / width;
-          double b = y0 + (y1 - y0) * y / height;
-          double c = a;
-          double d = b;
-          int i = 0;
-          while (i < maxIter)
+          double zx = x0 + (x1 - x0) * x / width;
+          double zy = y0 + (y1 - y0) * y / height;
+          int iter = 0;
+
+          while (zx * zx + zy * zy < 4 && iter < maxIter)
           {
-            double e = a * a - b * b + c;
-            double f = 2 * a * b + d;
-            a = e;
-            b = f;
-            if (a * a + b * b > 4.0) break;
-            i++;
+            double tmp = zx * zx - zy * zy + cx;
+            zy = 2 * zx * zy + cy;
+            zx = tmp;
+            iter++;
           }
-          if (i == maxIter)
-          {
-            image[x, y] = new Rgba32(0, 0, 0);
-          }
-          else
+
+          if (iter < maxIter)
           {
             // HSVからRGBへの変換
-            double h = i / (double)maxIter * 360 + hue;
+            double h = iter / (double)maxIter * 360 + hue;
             double s = 1.0;
             double v = 1.0;
             double _r, _g, _b;
@@ -122,6 +120,10 @@ namespace mandelbrot
               }
             }
             image[x, y] = new Rgba32((byte)(_r * 255), (byte)(_g * 255), (byte)(_b * 255));
+          }
+          else
+          {
+            image[x, y] = new Rgba32(0, 0, 0);
           }
         }
       }
